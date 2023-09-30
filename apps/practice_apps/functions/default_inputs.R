@@ -6,7 +6,7 @@ get_inputs <- function(...) {
     defaults <- list(
         # paid new inputs
         paid_new_campaign_list             = c("linkedin", "spotify"),
-        paid_new_clicks                    = c(1000, 1000000),
+        paid_new_clicks                    = c(1000, 2000),
         paid_new_leads                     = c(75, 1500),
         paid_new_cost                      = c(6000, 17000)
     )
