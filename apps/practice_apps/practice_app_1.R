@@ -71,14 +71,14 @@ combined_UI <- function(id) {
   )
 }
 
-combined_Server <- function(id, campaign_list, clicks) {
+combined_Server <- function(id, updated_inputs) {
   moduleServer(
     id,
     function(input, output, session) {
       output$calculation_table <- renderTable({
         tibble(
-          campaign = campaign_list,
-          clicks   = clicks
+          campaign = updated_inputs()$campaign_list,
+          clicks   = updated_inputs()$clicks
         )
       })
       
@@ -114,8 +114,9 @@ server <- function(input, output, session) {
   
   combined_Server(
     id            = "combined",
-    campaign_list = updated_inputs()$campaign_list,
-    clicks        = updated_inputs()$clicks
+    # campaign_list = updated_inputs()$campaign_list,
+    # clicks        = updated_inputs()$clicks
+    updated_inputs = updated_inputs
   )
 }
 
