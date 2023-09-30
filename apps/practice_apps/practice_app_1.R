@@ -38,17 +38,56 @@ input_Server <- function(id) {
       # apply button
       updated_inputs <- eventReactive(input[["apply"]], {
         list(
-          campaign_list = stringr::str_split(input[["paid_new_campaign_list"]], ", ")[[1]]
+          campaign_list = stringr::str_split(input[["paid_new_campaign_list"]], ",")[[1]],
+          clicks = as.numeric(unlist(str_split(input[["paid_new_clicks"]], ",")))
+        
         )
       })
       
       # print updated inputs
       output$default_list <- renderPrint({default_inputs()$paid_new_campaign_list})
       output$updated_list <- renderPrint({ updated_inputs()$campaign_list })
+      output$clicks <- renderPrint({ updated_inputs()$clicks })
+      output$calc <- renderTable({
+        tibble(
+          campaign = updated_inputs()$campaign_list,
+          clicks   = updated_inputs()$clicks
+        )
+      })
+      
+      # return
+      return(updated_inputs)
       
     }
   )
 }
+
+combined_UI <- function(id) {
+  
+  ns <- NS(id)
+  
+  tagList(
+    tableOutput(ns("calculation_table"))
+  )
+}
+
+combined_Server <- function(id, campaign_list, clicks) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+      output$calculation_table <- renderTable({
+        tibble(
+          campaign = campaign_list,
+          clicks   = clicks
+        )
+      })
+      
+    }
+  )
+}
+
+
+
 
 # App ----
 ui <- fluidPage(
@@ -59,14 +98,29 @@ ui <- fluidPage(
       textOutput("input-default_list"),
       hr(),
       p("Updated Inputs"),
-      textOutput("input-updated_list")
+      textOutput("input-updated_list"),
+      textOutput("input-clicks"),
+      br(),
+      tableOutput("input-calc"),
+      hr(),
+      p("Calculations"),
+      combined_UI("combined")
     )
   )
 )
 server <- function(input, output, session) {
-  input_Server("input")
-  #output$out <- renderPrint(var(), width = 40)
+  
+  updated_inputs <- input_Server("input")
+  
+  combined_Server(
+    id            = "combined",
+    campaign_list = updated_inputs()$campaign_list,
+    clicks        = updated_inputs()$clicks
+  )
 }
 
 shinyApp(ui, server)
+
+
+
 

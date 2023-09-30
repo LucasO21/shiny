@@ -12,6 +12,7 @@ get_packages <- function() {
         # * Core
         "tidyverse",
         "janitor",
+        "stringr",
         # "DT",
         # "data.table",
         # "dtplyr",
