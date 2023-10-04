@@ -10,10 +10,15 @@
 # * Libraries ----
 library(tidyverse)
 library(janitor)
+library(bigrquery)
 library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
 library(shinyjs)
+
+# * Auth ----
+# authenticate
+bq_auth(path = "../../json/")
 
 # *****************************************************************************
 # **** ----
@@ -62,26 +67,24 @@ ui <- dashboardPage(
         # ),
         materialSwitch(
             inputId = "con",
-            label = "Database Connection",
-            status = "primary",
-            right = FALSE
+            label   = "Database Connection",
+            status  = "primary",
+            right   = FALSE
         ),
         
         hr(),
         
         pickerInput(
-            inputId  = "project",
-            label    = "Project",
-            choices  = NULL,
-            multiple = FALSE,
-            selected = NULL
+            inputId = "project",
+            label   = "Project",
+            choices = NULL, multiple = FALSE, selected = NULL
         ),
         
         hr(),
         
         pickerInput(
             inputId = "dataset",
-            label = "Dataset",
+            label   = "Dataset",
             choices = NULL, selected = NULL, multiple = FALSE
         ),
         
@@ -89,7 +92,7 @@ ui <- dashboardPage(
         
         pickerInput(
           inputId = "tables",
-          label = "Tables",
+          label   = "Tables",
           choices = NULL, selected = NULL, multiple = FALSE
         ),
         
@@ -121,7 +124,11 @@ ui <- dashboardPage(
         
         h3("Sample Data:"),
         
-        tableOutput("sample_data")
+        tableOutput("sample_data"),
+        
+        verbatimTextOutput("id"),
+        verbatimTextOutput("datasets"),
+        verbatimTextOutput("tables")
     )
 )
 
@@ -135,7 +142,7 @@ ui <- dashboardPage(
 server <- function(input, output) {
     
     # projects 
-    project_list <- reactive({
+    project_tbl <- reactive({
         tibble(
             name = c(
                 "Mastering DBT",
@@ -150,81 +157,80 @@ server <- function(input, output) {
         )
     })
     
+    # update projects picker input
+    observe({
+        updatePickerInput(
+            session  = getDefaultReactiveDomain(),
+            inputId  = "project", 
+            choices  = unique(project_tbl()$name),
+            selected = unique(project_tbl()$name[1])
+        )
+    })
+   
     # datasets
-    datasets_reactive <- reactive({
-        
+    datasets_list <- reactive({
+
+        # require apply button
+        #req(input$apply)
+
         if (is.null(input$project)) {
             return(NULL) # Return NULL if input$project is NULL
         }
-        
-        project_id <- project_list()[project_list()$name == input$project, ]$id
-        dataset_list <- bq_project_datasets(project_id) %>%
+
+        id <- project_tbl()[project_tbl()$name == input$project, ]$id
+
+        dataset_list <- bq_project_datasets(id) %>%
             map(
                 .f = function(x) {
                     x$dataset
                 }
             ) %>% unlist()
+        
         dataset_list
     })
 
-    # update inputs
-    observe({
-        
+    # update dataset picker inputs
+    observeEvent(input$project, {
         updatePickerInput(
-            session = getDefaultReactiveDomain(),
-            inputId = "project", # Added inputId
-            choices = unique(project_list()$name),
-            selected = unique(project_list()$name[1])
+            session  = getDefaultReactiveDomain(),
+            inputId  = "dataset",
+            choices  = unique(datasets_list()),
+            selected = unique(datasets_list())[1]
         )
-        
-        updatePickerInput(
-            session = getDefaultReactiveDomain(),
-            inputId = "dataset",
-            choices = unique(datasets_reactive()),
-            selected = unique(datasets_reactive())[1]
-        )
-        
-        updatePickerInput(
-            session = getDefaultReactiveDomain(),
-            inputId = "tables",
-            choices = unique(tables_reactive()),
-            selected = unique(tables_reactive())[1]
-        )
-     
     })
     
-    # connection
-    con_reactive <- reactive({
-        # Only proceed if the apply button has been clicked at least once
-        #req(input$apply)
-        req(input$con == TRUE)
+    # connection open
+    con <- reactive({
         
+        req(input$con == TRUE)
+
         if (is.null(input$project) || is.null(input$dataset)) {
             return(NULL)
         }
-        
+
         DBI::dbConnect(
             bigrquery::bigquery(),
-            project = project_list()[project_list()$name == input$project, ]$id,
+            project = project_tbl()[project_tbl()$name == input$project, ]$id,
             dataset = input$dataset,
-            billing = project_list()[project_list()$name == input$project, ]$id
+            billing = project_tbl()[project_tbl()$name == input$project, ]$id
         )
     })
     
+    # connection closed
     observe({
-        if (input$con == FALSE && !is.null(con_reactive())) {
-            dbDisconnect(con_reactive())
+        if (input$con == FALSE && !is.null(con())) {
+            dbDisconnect(con())
         }
     })
     
     # connection message
     output$connection_status <- renderUI({
-        msg_closed = str_glue("Connection closed! 
+        msg_closed = str_glue("Connection closed!
                               Toggle the Database Connection to establish connection to Big Query")
-        
-        msg_open = str_glue("Connection Open! 
+
+        msg_open = str_glue("Connection Open!
                              Project: {input$project}, Dataset: {input$dataset}")
-        
+
         if (input$con == TRUE) {
             # Connection is open
             tags$div(
@@ -239,94 +245,96 @@ server <- function(input, output) {
             )
         }
     })
-    
-    
   
     
     # tables
-    tables_reactive <- reactive({
+    tables_list <- reactive({
+        req(con())
+        tryCatch({
+            DBI::dbListTables(con())
+        }, error = function(e) {
+            return(NULL)
+        })
+    })
 
-        req(con_reactive())
-   
-        DBI::dbListTables(con_reactive())
-        
+    
+    # update tables picker inputs
+    # observeEvent(input$dataset, {
+    #     updatePickerInput(
+    #         session  = getDefaultReactiveDomain(),
+    #         inputId  = "tables",
+    #         choices  = unique(tables_list()),
+    #         selected = unique(tables_list())[1]
+    #     )
+    # })
+    
+    observe({
+        updatePickerInput(
+            session  = getDefaultReactiveDomain(),
+            inputId  = "tables",
+            choices  = unique(tables_list()),
+            selected = unique(tables_list())[1]
+        )
     })
     
-    
+    id <- reactive({project_tbl()[project_tbl()$name == input$project, ]$id})
+
+    output$id <- renderPrint({id()})
+    output$datasets <- renderPrint({datasets_list()})
+    output$tables <- renderPrint({tables_list()})
+
+
     # reset button
     observeEvent(input$reset, {
+
+        #updateActionButton(session, "apply", value = 0)
+
         updatePickerInput(
             session = getDefaultReactiveDomain(),
             inputId = "project", # Added inputId
-            choices = unique(project_list()$name),
-            selected = unique(project_list()$name[1])
+            choices = unique(project_tbl()$name),
+            selected = unique(project_tbl()$name[1])
         )
-        
+
         updatePickerInput(
             session = getDefaultReactiveDomain(),
             inputId = "dataset",
-            choices = unique(datasets_reactive()),
-            selected = unique(datasets_reactive())[1]
+            choices = unique(datasets_list()),
+            selected = unique(datasets_list())[1]
         )
-        
+
         updatePickerInput(
             session = getDefaultReactiveDomain(),
             inputId = "tables",
-            choices = unique(tables_reactive()),
-            selected = unique(tables_reactive())[1]
+            choices = unique(tables_list()),
+            selected = unique(tables_list())[1]
         )
-        
+
         shinyjs::delay(ms = 300, expr = {
             shinyjs::click(id = "apply")
         })
     })
-    
-    
-    # print connection string
-    # output$con <- renderPrint({
-    #     if (is.null(con_reactive())) {
-    #         return("No connection established.")
-    #     }
-    #     paste("Connected to project:", input$project, "and dataset:", input$dataset)
-    # })
-    
+
     # display sample data
     selected_tbl <- reactive({
         req(input$apply)
-        if (is.null(con_reactive()) || is.null(input$tables)) {
+        if (is.null(con()) || is.null(input$tables)) {
             return(NULL)
         }
-        
-        dplyr::tbl(con_reactive(), input$tables) %>% 
-            head(5) 
+
+        dplyr::tbl(con(), input$tables) %>% head(5)
     })
-    
+
     output$sample_data <- renderTable({
+
+        if (input$apply == 0) {
+            return(data.frame(Message = "Click 'Apply' to view sample data"))
+        }
+
         selected_tbl()
     })
 }
 
 shinyApp(ui, server)
 
-# # * View ----
-# stg_products_tbl <- dplyr::tbl(con, "stg_ecommerce__products")
-# 
-# schedules_tbl %>% glimpse()
-# 
-# 
-# # * Collect ----
-# product_ids <- select(stg_products_tbl, product_id) %>% 
-#     distinct() %>% 
-#     collect()
 
-
-
-
-# *****************************************************************************
-# **** ----
-# SECTION NAME ----
-# *****************************************************************************
-# *****************************************************************************
-# **** ----
-# SECTION NAME ----
-# *****************************************************************************

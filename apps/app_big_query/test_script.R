@@ -19,18 +19,66 @@ library(bigrquery)
 # DB CONNECTION ----
 # *****************************************************************************
 
+# * Auth ----
+#bq_auth(email = "lokwudishu@gmail.com")
+
+# * List Projects ----
+projects_list <- bq_projects()
+
+# * Datasets List ----
+dataset_list <- bq_project_datasets(projects_list[4])
+
+# * Dataset Table ----
+get_project_datasets <- function(project_id) {
+    
+    if (is_empty(bq_project_datasets(project_id))) {
+        return(
+            tibble(
+                project = c(NA), dataset = c(NA)
+            )
+        )
+    }
+    
+    tbl <- bigrquery::bq_project_datasets(project_id) %>% 
+        map(.f = function(x) {
+            x$dataset
+        }) %>% unlist()
+    
+    tibble(
+        dataset = c(tbl)
+    ) %>% 
+        mutate(project = project_id, .before = dataset)
+}
+
+get_project_datasets(project_id = projects_list[1])
+
+# * Project & Dataset Table ----
+get_project_dataset_table <- function(projects) {
+    
+    projects %>% 
+        map(
+            .f = function(x) {
+                get_project_datasets(x)
+            }
+        ) %>% 
+        bind_rows() %>% 
+        filter(! is.na(project))
+
+}
+
+projects_datasets_tbl <- get_project_dataset_table(projects_list)
+
+
 # * Create Connection ----
+selected_project <- "mastering-dbt-394415"
+dataset <- projects_datasets_tbl[projects_datasets_tbl$project == selected_project, ]$dataset[1]
+
 con <- DBI::dbConnect(
     bigrquery::bigquery(),
-    project   = "mastering-dbt-394415",
-    dataset   = "dbt_lessons",
-    #billing   = Sys.getenv("BIG_QUERY_BILLING_ID")
-    billing   = "mastering-dbt-394415",
+    project   = selected_project,
+    dataset   = dataset,
+    billing   = selected_project
 )
-
-
-# * Authentication ----
-bq_auth(path = NULL)
 
 
 # * List / Inspect Tables ----
