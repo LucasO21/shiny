@@ -316,14 +316,22 @@ server <- function(input, output) {
     })
 
     # display sample data
-    selected_tbl <- reactive({
-        req(input$apply)
+    # selected_tbl <- reactive({
+    #     req(input$apply)
+    #     if (is.null(con()) || is.null(input$tables)) {
+    #         return(NULL)
+    #     }
+    # 
+    #     dplyr::tbl(con(), input$tables) %>% head(5)
+    # })
+    
+    selected_tbl <- eventReactive(eventExpr = input$apply, {
         if (is.null(con()) || is.null(input$tables)) {
-            return(NULL)
-        }
+                    return(NULL)
+                }
 
-        dplyr::tbl(con(), input$tables) %>% head(5)
-    })
+                dplyr::tbl(con(), input$tables) %>% head(5)
+    }) 
 
     output$sample_data <- renderTable({
 
