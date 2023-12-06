@@ -50,7 +50,7 @@ get_project_datasets <- function(project_id) {
         mutate(project = project_id, .before = dataset)
 }
 
-get_project_datasets(project_id = projects_list[1])
+get_project_datasets(project_id = projects_list[4])
 
 # * Project & Dataset Table ----
 get_project_dataset_table <- function(projects) {

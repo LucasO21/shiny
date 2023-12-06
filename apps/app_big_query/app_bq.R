@@ -110,17 +110,19 @@ ui <- dashboardPage(
         
         div(
             class = "page-header",
-            h1("Output Section")
+            h1("Database Connection Info")
         ),
         
         hr(),
         
-        h3("Connection:"),
+        h2("Connection:"),
         
         verbatimTextOutput("con"),
         uiOutput("connection_status"),
         
         hr(),
+        
+        h3("Table Info"),
         
         h3("Sample Data:"),
         
@@ -247,7 +249,7 @@ server <- function(input, output) {
     })
   
     
-    # tables
+    # ---- tables ---- #
     tables_list <- reactive({
         req(con())
         tryCatch({
@@ -256,17 +258,6 @@ server <- function(input, output) {
             return(NULL)
         })
     })
-
-    
-    # update tables picker inputs
-    # observeEvent(input$dataset, {
-    #     updatePickerInput(
-    #         session  = getDefaultReactiveDomain(),
-    #         inputId  = "tables",
-    #         choices  = unique(tables_list()),
-    #         selected = unique(tables_list())[1]
-    #     )
-    # })
     
     observe({
         updatePickerInput(
@@ -314,17 +305,8 @@ server <- function(input, output) {
             shinyjs::click(id = "apply")
         })
     })
-
-    # display sample data
-    # selected_tbl <- reactive({
-    #     req(input$apply)
-    #     if (is.null(con()) || is.null(input$tables)) {
-    #         return(NULL)
-    #     }
-    # 
-    #     dplyr::tbl(con(), input$tables) %>% head(5)
-    # })
     
+    # selected table 
     selected_tbl <- eventReactive(eventExpr = input$apply, {
         if (is.null(con()) || is.null(input$tables)) {
                     return(NULL)
@@ -332,14 +314,21 @@ server <- function(input, output) {
 
                 dplyr::tbl(con(), input$tables) %>% head(5)
     }) 
-
+    
+    # sample data output
     output$sample_data <- renderTable({
 
         if (input$apply == 0) {
             return(data.frame(Message = "Click 'Apply' to view sample data"))
         }
 
-        selected_tbl()
+        tbl <- selected_tbl()
+        
+        if (is.character(tbl) && length(tbl) == 0) {
+            return(data.frame(Message = "Not available table"))
+        }
+        
+        tbl
     })
 }
 
