@@ -15,7 +15,7 @@ source("modules/module_tab_title.R")
 # UI ----
 ui <- tagList(
     useShinydashboard(),
-    useShinyjs(),
+    shinyjs::useShinyjs(),
     
     navbarPage(
         title = "My Shiny App",
@@ -29,18 +29,12 @@ ui <- tagList(
             
             module_tab_title_UI(id = "tab1_header"),
             
-            module_wellPanel_input_UI(id = "tab1_input")
+            module_wellPanel_input_UI(id = "tab1_inputs")
         ),
         
         tabPanel(
-            title = "Panel 2",
-            
-            module_tab_title_UI(
-                id = "tab2_header",
-                title = "Tab 2 Title",
-                subtitle = "Tab 2 Subtitle"
-            ),
-        )
+            title = "Panel 2"
+       )
     )
 )
 
@@ -52,10 +46,14 @@ server <- function(input, output) {
     module_tab_title_Server(id = "tab1_header")
     
     # Tab 1 Inputs
-    module_wellPanel_input_UI(id = "tab1_input")
+    module_wellPanel_input_Server(id = "tab1_inputs")
     
-    # Tab 2 Header
-    module_tab_title_Server(id = "tab2_header")
+    # shinyjs::onclick(id = "tab1_inputs-toggle", {
+    #     shinyjs::toggle(id = "tab1_inputs-inputs", anim = TRUE, animType = "slide")
+    # })
+
+    
+
     
 
     

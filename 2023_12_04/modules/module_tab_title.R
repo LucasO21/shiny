@@ -11,6 +11,7 @@ setwd(here::here("2023_12_04", "modules"))
 # * Libraries ----
 library(tidyverse)
 library(janitor)
+library(shinyjs)
 
 # * Data View ----
 # data_sample_tbl <- read_csv("data/online_retail_II.csv") %>% head(5)
@@ -26,6 +27,7 @@ module_tab_title_UI <- function(id,
                                 col_width = 10,
                                 col_offset = 1) {
     ns <- NS(id)
+    
     fluidRow(
         column(
             width = col_width, offset = col_offset,
@@ -33,7 +35,7 @@ module_tab_title_UI <- function(id,
                 class = "page-header",
                 h1(title),
                 h3(subtitle),
-                actionButton(ns("tab1_info"), "More Info", icon = icon("circle-info"))
+                actionButton(ns("info"), "More Info", icon = icon("circle-info"))
             )
         )
     )
@@ -43,7 +45,7 @@ module_tab_title_UI <- function(id,
 module_tab_title_Server <- function(id) {
     moduleServer(id, function(input, output, session) {
         
-        observeEvent(eventExpr = input[["tab1_info"]], handlerExpr = {
+        observeEvent(eventExpr = input[["info"]], handlerExpr = {
             showModal(
                 modalDialog(
                     title = h3("Tab1 Additional Info"),
@@ -64,8 +66,16 @@ module_tab_title_Server <- function(id) {
 # *****************************************************************************
 
 module_wellPanel_input_UI <- function(id) {
-  ns <- NS(id)
+    
+    # NS Setup
+    ns <- NS(id)
+    
+    # Widgets
+    #action_toggle <- actionButton(ns("toggle_tab1"), "Toggle Inputs", icon = icon("toggle-on"))
+    
+  # Taglist    
   tagList(
+      shinyjs::useShinyjs(),
       
       fluidRow(
           column(
@@ -73,18 +83,18 @@ module_wellPanel_input_UI <- function(id) {
               wellPanel(
                   fluidRow(
                       div(
-                          actionButton("toggle", "Toggle Inputs", icon = icon("toggle-on"))
+                          actionButton(ns("toggle"), "Toggle Inputs", icon = icon("toggle-on"))
                       ),
                       br(),
                       div(
-                          id = "inputs",
+                          id = ns("inputs"),
                           div(
                               class = "row",
                               div(
                                   div(
                                       class = "col-md-2",
                                       pickerInput(
-                                          inputId  = "customer_id",
+                                          inputId  = ns("customer_id"),
                                           label    = "Customer ID",
                                           choices  = NULL,
                                           multiple = TRUE,
@@ -101,7 +111,7 @@ module_wellPanel_input_UI <- function(id) {
                                   div(
                                       class = "col-md-2",
                                       pickerInput(
-                                          inputId  = "cohort_id",
+                                          inputId  = ns("cohort_id"),
                                           label    = "Purchase Cohort",
                                           choices  = NULL,
                                           multiple = TRUE,
@@ -118,7 +128,7 @@ module_wellPanel_input_UI <- function(id) {
                                   div(
                                       class = "col-md-2",
                                       dateRangeInput(
-                                          inputId = "date_info",
+                                          inputId = ns("date_info"),
                                           label   = "Invoice Date Range",
                                           start   = NULL,
                                           end     = NULL,
@@ -130,7 +140,7 @@ module_wellPanel_input_UI <- function(id) {
                                   div(
                                       class = "col-md-2",
                                       pickerInput(
-                                          inputId  = "country_id",
+                                          inputId  = ns("country_id"),
                                           label    = "Country",
                                           choices  = NULL,
                                           multiple = TRUE,
@@ -147,12 +157,12 @@ module_wellPanel_input_UI <- function(id) {
                               )
                           ),
                           div(
-                              actionButton("apply", "Apply", icon = icon("play"), width = "140px"),
-                              actionButton("reset", "Reset", icon = icon("sync"), width = "140px"),
-                              downloadButton("download_data", "Download Data", icon = icon("download"), width = "140px"),
-                              actionButton("mtd", "Metadata", icon = icon("info-circle"), width = "140px")
+                              actionButton(ns("apply"), "Apply", icon = icon("play"), width = "140px"),
+                              actionButton(ns("reset"), "Reset", icon = icon("sync"), width = "140px"),
+                              downloadButton(ns("download_data"), "Download Data", icon = icon("download"), width = "140px"),
+                              actionButton(ns("mtd"), "Metadata", icon = icon("info-circle"), width = "140px")
                           )
-                      )
+                      ) %>% shinyjs::hidden()
                   )
               )
           )
@@ -164,6 +174,15 @@ module_wellPanel_input_Server <- function(id) {
   moduleServer(
     id,
     function(input, output, session) {
+        
+        shinyjs::onclick(id = "toggle", {
+            shinyjs::toggle(id = "inputs", anim = TRUE, animType = "slide")
+        })
+        
+        # observeEvent(eventExpr = input[["toggle"]], handlerExpr = {
+        #     shinyjs::toggle(sessions$ns
+        #                     ("inputs"))
+        # })
       
     }
   )
