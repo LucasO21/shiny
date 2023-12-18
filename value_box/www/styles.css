@@ -1,0 +1,14 @@
+
+
+/* Value Box Fluid Row Shadow */
+.shadow-row {
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2); /* Example shadow: You can customize it */
+    padding: 20px; /* Optional: for better visual */
+}
+
+
+/* Value Box Title */
+.custom-vb-title {
+    font-size: 25px; 
+    /*font-weight: bold;*/
+}
