@@ -5,50 +5,22 @@ source("functions/custom_valuebox.R")
 
 
 # VB UI ----
-module_vb_UI <- function(id) {
+module_vb_UI <- function(id, value = "1,345", title = "Title", sparkobj = NULL, 
+                         subtitle = "Subtitle", info_icon = TRUE,
+                         info = NULL, icon = NULL, color = "aqua", width = 4, href = NULL) {
     ns <- NS(id)
-    valueBoxOutput(ns("vb"))
+    value_box_custom(value, title, sparkobj, subtitle, info_icon,
+                     info, icon, color, width, href)
 }
 
+
 # VB Server ----
-module_vb_Server <- function(id, value = "1,563", title = "Sales", 
-                             #subtitle = tagList(HTML("&uarr;"), "25% Since Last Day"), 
-                             subtitle = "Subtitile",
-                             sparkobj = NULL, info_icon = TRUE, info = NULL,
-                             icon = "code", color = "blue", href = NULL,
-                             width = 4) {
-    moduleServer(
-        id,
-        function(input, output, session) {
-            output$vb <- renderValueBox({
-                # valueBox(
-                #     value     = value,
-                #     title     = title,
-                #     subtitle  = subtitle,
-                #     sparkobj  = sparkobj,
-                #     info_icon = info_icon,
-                #     info      = info,
-                #     icon      = icon(icon),
-                #     width     = width,
-                #     color     = color,
-                #     href      = href
-                # )
-                value_box_custom(
-                    value     = value,
-                    title     = title,
-                    subtitle  = subtitle,
-                    sparkobj  = sparkobj,
-                    info_icon = info_icon,
-                    info      = info,
-                    icon      = icon(icon),
-                    width     = width,
-                    color     = color,
-                    href      = href
-                )
-            })
-        }
-    )
+module_vb_Server <- function(id) {
+    moduleServer(id, function(input, output, session) {
+        # Server-side logic (if any)
+    })
 }
+
 
 # value_box_custom(
 #     value = "1,456",
